@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>售卖管理</title>
+</head>
+<script src="./js/vue.js"></script>
+<script src="./element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="./element-ui/lib/theme-chalk/index.css">
+<script src="./js/axios-0.18.0.js"></script>
+<style lang="scss">
+    /*背景设置*/
+    body {
+        background-image: url("./image/wallhaven-manage.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-attachment: fixed;
+        /*背景虚化*/
+        backdrop-filter: blur(2px);
+    }
+
+    /*第一行占高*/
+    .grid-content {
+        border-radius: 4px;
+        min-height: 60px;
+    }
+
+    /*标题样式*/
+    .caption {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 30px;
+        display: flex;
+        justify-content: center; /*水平居中*/
+        align-items: Center; /*垂直居中*/
+        min-height: 50px;
+    }
+
+    /*定义滚动条高宽及背景 高宽分别对应横竖滚动条
+    的尺寸*/
+    ::-webkit-scrollbar {
+        width: 7px; /*滚动条宽度*/
+        height: 7px; /*滚动条高度*/
+        background-color: rgb(223, 224, 229);
+    }
+
+    body .el-scrollbar__wrap {
+        overflow-x: hidden;
+    }
+
+    /*页头样式*/
+    .el-page-header, .el-page-header__content {
+        color: #f6f1f1;
+    }
+
+    /*出售图书类别标签样式*/
+    .el-tag {
+        cursor: default;
+        user-select: none;
+    }
+
+    /*对话框一般样式*/
+    .el-dialog__header {
+        background: #adaaaa;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: Center;
+    }
+
+    .el-dialog__body {
+        background: #e5dddd;
+    }
+
+</style>
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="9">
+            <div class="caption">校园二手书籍交易平台</div>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="2">
+            <div style="min-height: 50px;"></div>
+        </el-col>
+        <el-col :span="20">
+            <el-page-header @back="goBack" content="图书管理">
+            </el-page-header>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="2">
+            <div style="min-height: 50px;"></div>
+        </el-col>
+        <el-col :span="22" style="height: 600px">
+            <el-scrollbar style=" height: 100%;">
+                <div style="width: 90%">
+                    <el-row>
+                        <el-col :span="11" v-for="(item,index) in tableData" :key="item.id" :offset="1">
+                            <el-card class="box-card" style="width: 100%;opacity: 90%">
+                                <el-row>
+                                    <el-col :span="6" style="height: 120px;">
+                                        <el-image v-if="item.imagePath" :src='item.imagePath' fit="cover"
+                                                  style="height: 120px;width: 90%;cursor: pointer"
+                                                  @click="detailsJump(item.id)"></el-image>
+                                    </el-col>
+                                    <el-col :span="18" style="height: 120px">
+                                        <div style="height: 30%;">
+                                            <span @click="detailsJump(item.id)" style="cursor: pointer">
+                                                {{item.bookName}}
+                                                <el-divider direction="vertical"></el-divider>
+                                                {{item.author}}
+                                            </span>
+                                        </div>
+                                        <div style="height: 20%;font-family: 幼圆;">
+                                            <span>售出：{{item.sales}}</span>
+                                            <span>剩余：{{item.inStock - item.sales}}</span>
+                                        </div>
+                                        <div style="height: 20%;font-family: 幼圆;">
+                                            <span>收益：{{item.price * item.sales}}</span>
+                                        </div>
+                                        <div style="height: 39%;">
+                                            <span style="float: left;font-family: 幼圆;">用户综合评分：</span>
+                                            <el-rate style="float: left"
+                                                     v-model="item.overallRating"
+                                                     disabled
+                                                     show-score
+                                                     text-color="#ff9900"></el-rate>
+                                            <el-button style="font-family: 华文新魏;background: #9ce7e7;
+                                            font-size: 15px;float: right;" size="mini"
+                                                       @click="editButton(index)" round>商品编辑
+                                            </el-button>
+                                        </div>
+                                    </el-col>
+                                </el-row>
+                            </el-card>
+                            <div style="min-height: 12px;"></div>
+                        </el-col>
+                    </el-row>
+                </div>
+            </el-scrollbar>
+        </el-col>
+    </el-row>
+    <!--商品编辑页面，图片修改和其他信息修改分离-->
+    <el-dialog
+            title="图书信息编辑"
+            :visible.sync="editBookDialog"
+            width="52%"
+            @close="bookManageLoad"
+    >
+        <div style="width: 100%;height: 110px;">
+            <span style="float:left;padding-top: 35px;">图片上传：&emsp;   </span>
+            <div v-for="(item, index) in bookImageTable" :key="item.id">
+                <div style="float: left;width: 110px">
+                    <el-card :body-style="{ padding: '5px',}" style="width: 100px;" :number=index
+                             class="editBookImageCard">
+                        <el-image v-if="item.base64String" :src='item.base64String' fit="cover"
+                                  style="height: 90px;width: 90px;user-select: none;"></el-image>
+                    </el-card>
+                </div>
+            </div>
+            <span style="float:right;">
+                <el-upload
+                        class="avatar-uploader"
+                        action=""
+                        :show-file-list="false"
+                        :http-request="httpRequest"
+                        :before-upload="beforeUpload"
+                        style="padding-left: 10px">
+                     <el-tooltip class="item" effect="dark" content="请先选中图片，否则后续操作失败" placement="right-start">
+                         <el-button style="background: #9ce7e7;" size="mini" round>替换图片</el-button>
+                     </el-tooltip>
+                </el-upload>
+                <el-button style="background: #9ce7e7;float: right" @click="deleteBookImage()" size="mini"
+                           round>删除图片</el-button>
+                <el-upload
+                        class="avatar-uploader"
+                        action=""
+                        :show-file-list="false"
+                        :http-request="addHttpRequest"
+                        :before-upload="addBeforeUpload"
+                        style="padding-left: 10px">
+                    <el-button style="background: #9ce7e7;float: right" size="mini"
+                               round>添加图片</el-button>
+                </el-upload>
+             </span>
+            <!--预览图片弹窗，后续可以的话-->
+            <el-dialog :visible.sync="dialogVisible">
+                <img width="100%" v-if="dialogImageUrl" :src="dialogImageUrl" alt="">
+            </el-dialog>
+            <!-- <img v-if="sellBookImageUrl" :src="sellBookImageUrl" class="avatar">-->
+        </div>
+        <el-form label-position="right" label-width="80px" ref="bookData" :model="bookData"
+                 :rules="editBookRules" :inline="true">
+            <el-form-item label="书名" prop="bookName" style="width: 150%;">
+                <el-input type="textarea" v-model="bookData.bookName" :rows="3" placeholder="图书简介"
+                          style="width: 180%;"></el-input>
+            </el-form-item>
+            <el-form-item label="作者" prop="author">
+                <el-input v-model="bookData.author"></el-input>
+            </el-form-item>
+            <el-form-item label="出版社" prop="publishingHouse">
+                <el-input v-model="bookData.publishingHouse"></el-input>
+            </el-form-item>
+            <el-form-item label="分类记录" style="width: 100%">
+                <span v-for="(item, index) in sortTagRecord" :key="index">
+                    <el-tag type="info" color="#9ce7e7">{{item}}</el-tag>
+                    <span style="width: 1px"></span>
+                </span>
+                <span style="padding-left: 10px;font-size: 10px">重新选择分类或采用历史分类(都不选)</span>
+            </el-form-item>
+            <el-form-item label="图书分类">
+                <!--后续这里至少要有一个判断才能提交表单-->
+                <el-tag class="sortTag" type="info">小说</el-tag>
+                <el-tag class="sortTag" type="info">科幻</el-tag>
+                <el-tag class="sortTag" type="info">教辅</el-tag>
+                <el-tag class="sortTag" type="info">计算机</el-tag>
+                <el-tag class="sortTag" type="info">文学</el-tag>
+                <el-tag class="sortTag" type="info">工具书</el-tag>
+                <el-tag class="sortTag" type="info">名著</el-tag>
+                <el-tag class="sortTag" type="info">杂志</el-tag>
+                <el-tag class="sortTag" type="info">诗词</el-tag>
+            </el-form-item>
+            <el-form-item label="价格" prop="price">
+                <el-input v-model="bookData.price"></el-input>
+            </el-form-item>
+            <el-form-item label="出售数量" prop="inStock">
+                <el-input v-model="bookData.inStock"></el-input>
+            </el-form-item>
+            <!--卖家id自动录入-->
+            <!--用户每一次买或取消订单都更新销量-->
+            <!--每一次评价综合评分都计算-->
+            <el-form-item style="width: 200%;">
+                <div style="padding-left: 300%;">
+                    <el-button style="color: #ffffff;font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;" @click="editBookForm('bookData')" round>确 认
+                    </el-button>
+<!--                    <el-button style="color: #ffffff;font-family: 华文新魏;background: #faa0a0;-->
+<!--                    font-size: 20px;float:left;" @click="takeDownBookButton(bookData.id)" round>下架图书-->
+<!--                    </el-button>-->
+                </div>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+</div>
+</body>
+<script>
+    new Vue({
+        el: "#app",
+        // 挂载完成，Vue初始化成功，HTML页面渲染成功，加载数据
+        mounted() {
+            this.bookManageLoad();
+        },
+        data() {
+            let validateBookName = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('书名不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validateAuthor = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('作者不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validatePublishingHouse = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('出版社不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validatePrice = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入价格'));
+                } else if (!(/^\d{1,5}[\\.]?\d?$/.test(value))) {
+                    callback(new Error('最多可以有一位小数，且价格合理'));
+                } else {
+                    callback();
+                }
+            };
+            let validateInStock = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入出售数量'));
+                } else if (!(/^[1-9]+$/.test(value))) {
+                    callback(new Error('要求正整数'));
+                } else if (value < this.bookData.sales) {
+                    callback(new Error('要求不小于销量'));
+                } else {
+                }
+                callback();
+            };
+            return {
+                // 编辑图书表单规则绑定
+                editBookRules: {
+                    bookName: [
+                        {validator: validateBookName, trigger: 'blur'}
+                    ],
+                    author: [
+                        {validator: validateAuthor, trigger: 'blur'}
+                    ],
+                    publishingHouse: [
+                        {validator: validatePublishingHouse, trigger: 'blur'}
+                    ],
+                    price: [
+                        {validator: validatePrice, trigger: 'blur'}
+                    ],
+                    inStock: [
+                        {validator: validateInStock, trigger: 'blur'}
+                    ],
+                },
+                // 编辑窗口打开的图书数据索引
+                bookIndexRecord: '',
+                // 分类数据库记录
+                sortTagRecord: [],
+                // 图片预览的一些属性
+                dialogImageUrl: '',
+                dialogVisible: false,
+                // 图书信息编解窗口
+                editBookDialog: false,
+                // 记录编辑图片的序号
+                editBookImageNumbering: -1,
+                // 图书图片表
+                bookImage: {
+                    id: '',
+                    bookId: '',
+                    image: '',
+                    base64String: '',
+                },
+                // 图书信息
+                bookData: {
+                    id: '',
+                    bookName: '',
+                    author: '',// 作者
+                    publishingHouse: '',// 出版社
+                    sort: '',// 类别
+                    price: '',// 价格
+                    inStock: '2',// 初始库存
+                    sales: '1',// 销量
+                    userId: '',// 卖家
+                    overallRating: '',// 图书综合评分
+                    imagePath: '',//图书封面
+                },
+                // 图书图片数据表格
+                bookImageTable: [{
+                    id: '1',
+                    bookId: '',
+                    image: '',
+                    base64String: './image/wallhaven-manage.jpg',
+                },
+                    {
+                        id: '2',
+                        bookId: '',
+                        image: '',
+                        base64String: './image/wallhaven-manage.jpg',
+                    }, {
+                        id: '3',
+                        bookId: '',
+                        image: '',
+                        base64String: './image/wallhaven-manage.jpg',
+                    },],
+                // 图书数据表格
+                tableData: [
+                    {
+                        id: '1',
+                        bookName: '三体',
+                        author: '刘慈欣',// 作者
+                        publishingHouse: '11',// 出版社
+                        sort: '-科幻-小说-',// 类别
+                        price: '99',// 价格
+                        inStock: '3',// 初始库存
+                        sales: '2',// 销量
+                        userId: '1',// 卖家
+                        overallRating: 1,// 图书综合评分
+                        imagePath: './image/wallhaven-manage.jpg'
+                    },
+                    {
+                        id: '2',
+                        bookName: '三体三体三体三体',
+                        author: '刘慈欣',// 作者
+                        publishingHouse: '11',// 出版社
+                        sort: '科幻-小说-文学',// 类别
+                        price: '99',// 价格
+                        inStock: '3',// 初始库存
+                        sales: '2',// 销量
+                        userId: '1',// 卖家
+                        overallRating: 1,// 图书综合评分
+                        imagePath: './image/wallhaven-manage.jpg'
+                    },
+                ],
+            }
+        },
+        methods: {
+            /*下架图书*/
+            takeDownBookButton(bookId) {
+                this.$confirm('确定下架图书吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.delete("http://localhost/bookManage/takeDownBook/" + bookId).then(resp => {
+                        if (resp.data.code === 2001) {
+                            this.$message.success(resp.data.message);
+                        }
+                    });
+                }).catch(() => {
+                    this.$message.info('已取消下架')
+                });
+            },
+            /*页面数据加载方法*/
+            bookManageLoad() {
+                axios.get("http://localhost/bookManage").then((resp) => {
+                    if (resp.data.code === 2001) {
+                        this.tableData = resp.data.data;
+                    } else {
+                        this.$message.error(resp.data.message);
+                        window.location.href = "logIn.html";
+                    }
+                });
+            },
+            /*图书详情跳转*/
+            detailsJump(bookId) {
+                window.location.href = "productDetails.html?value=" + bookId;
+            },
+            // 返回上一页面
+            goBack() {
+                window.history.back();// 加载history列表中的前一个URL
+            },
+            // 提交修改
+            editBookForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        // 获取分类信息，为‘’时不更新，不对bookData赋值
+                        let sort = '';// 暂时存储类别
+                        let sortTagArray = document.getElementsByClassName("sortTag");
+                        let len = sortTagArray.length;
+                        for (let j = 0; j < len; j++) {
+                            let e = sortTagArray[j];
+                            if (e.style.backgroundColor === "rgb(156, 231, 231)") {
+                                sort += e.innerHTML + '-';
+                            }
+                        }
+                        if (sort === '') {
+                            this.$message.info("分类标签未选择，书籍分类不更改");
+                        } else {
+                            this.bookData.sort = sort;
+                        }
+                        // 向后台发送修改
+                        let _this = this;
+                        axios.put("http://localhost/bookManage/updateBook", _this.bookData).then(resp => {
+                            this.editBookDialog = false;
+                            this.bookManageLoad();
+                            if (resp.data.code === 2001) {
+                                this.$message.success(resp.data.message);
+                            } else {
+                                this.$message.error(resp.data.message);
+                            }
+                        });
+
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                });
+            },
+            // 添加图片前置
+            addBeforeUpload() {
+                if (this.bookImageTable.length >= 5) {
+                    this.$message.info("图片最多上传5张，不可再添加了");
+                    return false;
+                } else {
+                    return true;
+                }
+            },
+            // 编辑窗口添加图片
+            addHttpRequest(param) {
+                let _this = this;
+                let formData = new FormData();
+                formData.append('file', param.file);
+                axios.post("http://localhost/bookManage/addBookImage/" + _this.bookData.id, formData).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                        this.bookImageTable.push(resp.data.data);
+                        this.editBookImageCardEvent();
+                    } else {
+                        this.$message.error(resp.data.message);
+                    }
+                });
+            },
+            // 编辑窗口替换图片上传前判断
+            beforeUpload() {
+                if (this.editBookImageNumbering === -1) {
+                    this.$message.info("未选中图片，上传失败");
+                    return false;
+                } else {
+                    return true;
+                }
+            },
+
+            // 编辑窗口替换图片
+            httpRequest(param) {
+                let _this = this;
+                let formData = new FormData();
+                formData.append('file', param.file);
+                let bookImageId = this.bookImageTable[this.editBookImageNumbering].id;
+                // 传递多一个变量，如果为0，即是更改第一张图片，则更改图书封面
+                axios.post("http://localhost/bookManage/replaceBookImage/" + bookImageId + "/"
+                    + this.editBookImageNumbering + "/" + _this.bookData.id, formData).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                        this.bookImageTable.splice(this.editBookImageNumbering, 1, resp.data.data);
+                        if (this.editBookImageNumbering == 0) {
+                            this.tableData[this.bookIndexRecord].imagePath = resp.data.data.base64String;
+                        }
+                        this.editBookImageCardEvent();
+                    } else {
+                        this.$message.error(resp.data.message);
+                    }
+                });
+            },
+            // 编辑窗口 删除图片
+            deleteBookImage() {
+                if (this.editBookImageNumbering === -1) {
+                    this.$message.info("请先选中图片");
+                    return;
+                }
+                if (this.bookImageTable.length === 1) {
+                    this.$message.info("不能再删除了");
+                    return;
+                }
+                let bookImageId = this.bookImageTable[this.editBookImageNumbering].id;
+                axios.delete("http://localhost/bookManage/deleteBookImage/" + bookImageId).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                        this.bookImageTable.splice(this.editBookImageNumbering, 1);
+                        this.editBookImageCardEvent();
+                    } else {
+                        this.$message.error(resp.data.message);
+                    }
+                });
+            },
+            // 编辑窗口打开
+            editButton(bookIndex) {
+                let _this = this;
+                this.editBookDialog = true;
+                // 处理图片
+                this.bookData = this.tableData[bookIndex];
+                this.bookIndexRecord = bookIndex;
+                axios.get("http://localhost/bookManage/editImageLoad/" + _this.bookData.id).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.bookImageTable = resp.data.data;
+                    }
+                });
+                this.tagHandle();
+                this.editBookImageCardEvent();
+                this.sortTagEvent();
+            },
+            // 图书标签历史记录
+            tagHandle() {
+                // 处理标签 includes
+                setTimeout(() => {
+                    let sortTagArray = document.getElementsByClassName("sortTag");
+                    let len = sortTagArray.length;
+                    for (let j = 0; j < len; j++) {
+                        let e = sortTagArray[j];
+                        if (this.bookData.sort.includes(e.innerHTML)) {
+                            this.sortTagRecord.push(e.innerHTML);
+                        }
+                    }
+                }, 100);
+            },
+            // 编辑的图片点击选中事件
+            editBookImageCardEvent() {
+                setTimeout(() => {
+                    let _this = this;// 点击事件处于另一个对象中了
+                    let bookImageCard = document.getElementsByClassName("editBookImageCard");
+                    let len = bookImageCard.length;
+                    for (let i = 0; i < len; i++) {
+                        let e = bookImageCard[i];
+                        e.onclick = function () {
+                            if (e.style.backgroundColor === "rgb(156, 231, 231)") {
+                                e.style.backgroundColor = "#FFFFFF";
+                                _this.editBookImageNumbering = -1;
+                            } else {
+                                for (let j = 0; j < len; j++) {
+                                    bookImageCard[j].style.backgroundColor = "#FFFFFF";
+                                }
+                                e.style.backgroundColor = "#9ce7e7";
+                                _this.editBookImageNumbering = e.getAttribute('number');
+                            }
+                        }
+                    }
+                }, 1000);
+            },
+            // 编辑的选中类别标签事件
+            sortTagEvent() {
+                setTimeout(() => {
+                    let sortTagArray = document.getElementsByClassName("sortTag");
+                    let len = sortTagArray.length;
+                    for (let j = 0; j < len; j++) {
+                        let e = sortTagArray[j];
+                        e.onclick = function () {
+                            console.log(e.style.backgroundColor)
+                            if (e.style.backgroundColor === "rgb(156, 231, 231)") {
+                                e.style.backgroundColor = "#FFFFFF";
+                            } else {
+                                e.style.backgroundColor = "#9ce7e7";
+                            }
+                        }
+                    }
+                }, 500);
+            },
+        }
+    })
+</script>
+</html>

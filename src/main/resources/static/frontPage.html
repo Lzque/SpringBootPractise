@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>校园二手书籍交易平台</title>
+</head>
+<script src="./js/vue.js"></script>
+<script src="./element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="./element-ui/lib/theme-chalk/index.css">
+<script src="./js/axios-0.18.0.js"></script>
+<style lang="scss">
+    /*背景设置*/
+    body {
+        background-image: url("./image/wallhaven-lmkwwy.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-attachment: fixed;
+        /*背景虚化*/
+        backdrop-filter: blur(2px);
+    }
+
+    /*第一行占高*/
+    .grid-content {
+        border-radius: 4px;
+        min-height: 60px;
+    }
+
+    /*标题样式*/
+    .caption {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 30px;
+        display: flex;
+        justify-content: center; /*水平居中*/
+        align-items: Center; /*垂直居中*/
+        min-height: 50px;
+    }
+
+    /*导航菜单样式*/
+    .el-menu-demo {
+        opacity: 79%;
+    }
+
+    /*下拉导航栏样式*/
+    .el-submenu {
+        font-family: 幼圆;
+    }
+
+    /*导航栏字体样式*/
+    .el-menu-item {
+        font-family: 华文新魏;
+        font-size: 20px;
+    }
+
+    /*分页条样式*/
+    .block {
+        display: flex;
+        justify-content: center;
+        align-items: Center;
+        opacity: 90%;
+    }
+
+    /*分页字体样式*/
+    .el-pagination__total, .el-pagination__jump {
+        color: #ffffff;
+        font-weight: bold;
+    }
+
+    /*导航标签样式*/
+    .navigation-tab {
+        font-family: 华文新魏;
+        font-size: 20px;
+    }
+
+    /*用户抽屉样式*/
+    .el-drawer {
+        opacity: 90%;
+        background: #dde1e5;
+    }
+
+    /*用户各选项样式*/
+    .optionCentered {
+        display: flex;
+        justify-content: center;
+        align-items: Center;
+        height: 40px;
+        font-family: 华文宋体;
+        font-weight: bold;
+    }
+
+    /*个人信息对话框样式*/
+    .el-dialog__header {
+        background: #adaaaa;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: Center;
+    }
+
+    .el-dialog__body {
+        background: #e5dddd;
+    }
+
+    .el-descriptions__table {
+        background: #e5dddd;
+    }
+
+    /*头像图片上传框样式*/
+    .avatar-uploader .el-upload {
+        border: 1px dashed #ffffff;
+        border-radius: 6px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .avatar-uploader .el-upload:hover {
+        border-color: #ffffff;
+    }
+
+    .avatar-uploader-icon {
+        font-size: 28px;
+        color: #8c939d;
+        width: 178px;
+        height: 178px;
+        line-height: 178px;
+        text-align: center;
+    }
+
+    .avatar {
+        width: 178px;
+        height: 178px;
+        display: block;
+    }
+
+    /*图书售卖上传图片框样式*/
+    .el-upload--picture-card {
+        height: 100px !important;
+        line-height: 100px !important;
+        width: 100px !important;
+    }
+
+    .el-upload-list__item {
+        height: 100px !important;
+        width: 100px !important;
+    }
+
+    /*出售图书类别标签样式*/
+    .el-tag {
+        cursor: default;
+        user-select: none;
+    }
+</style>
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="9">
+            <div class="caption">校园二手书籍交易平台</div>
+        </el-col>
+    </el-row>
+    <!--顶部导航-->
+    <el-row>
+        <el-col :span="1">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="22">
+            <el-menu default-active="1" class="el-menu-demo" mode="horizontal">
+                <el-menu-item index="1">
+                    <el-link href="frontPage.html" target="_self" class="navigation-tab">首页</el-link>
+                </el-menu-item>
+                <el-menu-item index="2">
+                    <el-link href="shoppingCart.html" target="_self" class="navigation-tab">购物车</el-link>
+                </el-menu-item>
+                <el-submenu index="3" style="font-family: 华文新魏; ">
+                    <template slot="title">
+                        <el-image style="height:30px;width: 30px;border-radius:15px" v-if="imageUrl"
+                                  :src="imageUrl"></el-image>
+                        {{userData.userName}}
+                    </template>
+                    <el-menu-item index="3-1" @click.native="sellBooksDialogEvent()">售卖图书</el-menu-item>
+                    <el-menu-item index="3-2" @click.native="purchasedWindow()">已购图书</el-menu-item>
+                    <el-menu-item index="3-3" @click="drawer=true">更多选项</el-menu-item>
+                </el-submenu>
+                <el-menu-item style="float:right">
+                    <el-button type="info" @click="searchBookButton()">搜索</el-button>
+                </el-menu-item>
+                <el-menu-item style="float:right;">
+                    <el-input v-model="search" placeholder="可输入书名搜索"></el-input>
+                </el-menu-item>
+                <el-menu-item style="float:right">
+                    <el-checkbox v-model="checked" @change="onlyInStockEvent">只看有货（全局有效）</el-checkbox>
+                </el-menu-item>
+            </el-menu>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="1">
+            <div class="grid-content"></div>
+        </el-col>
+        <!--侧边导航-->
+        <el-col :span="3">
+            <!--侧边栏滚动，el-menu 中样式 height 调整高度-->
+            <el-scrollbar>
+                <el-menu
+                        default-active="2"
+                        :default-openeds="defaultOpened"
+                        class="el-menu-vertical-demo"
+                        @open="handleOpen"
+                        @select="handleSelect"
+                        style="opacity: 60%;height: 75vh"
+                >
+                    <el-menu-item index="0" @click="aa()">
+                        <i class="el-icon-s-grid"></i>
+                        <span slot="title">全部图书</span>
+                    </el-menu-item>
+                    <el-submenu index="1">
+                        <template slot="title">
+                            <i class="el-icon-s-operation"></i>
+                            <span>价格</span>
+                        </template>
+                        <el-menu-item-group>
+                            <el-menu-item index="1-1">0 ~ 20</el-menu-item>
+                            <el-menu-item index="1-2">20 ~ 50</el-menu-item>
+                            <el-menu-item index="1-3">50 ~ 70</el-menu-item>
+                            <el-menu-item index="1-4">70 ~ 100</el-menu-item>
+                            <el-menu-item index="1-5">100 ~</el-menu-item>
+                        </el-menu-item-group>
+                    </el-submenu>
+                    <el-submenu index="2">
+                        <template slot="title">
+                            <i class="el-icon-menu"></i>
+                            <span>分类</span>
+                        </template>
+                        <el-menu-item-group>
+                            <el-menu-item index="2-1">小说</el-menu-item>
+                            <el-menu-item index="2-2">科幻</el-menu-item>
+                            <el-menu-item index="2-3">教辅</el-menu-item>
+                            <el-menu-item index="2-4">计算机</el-menu-item>
+                            <el-menu-item index="2-5">文学</el-menu-item>
+                            <el-menu-item index="2-6">工具书</el-menu-item>
+                            <el-menu-item index="2-7">名著</el-menu-item>
+                            <el-menu-item index="2-8">杂志</el-menu-item>
+                            <el-menu-item index="2-9">诗词</el-menu-item>
+                        </el-menu-item-group>
+                    </el-submenu>
+                </el-menu>
+            </el-scrollbar>
+        </el-col>
+        <!--图书卡片-->
+        <el-col :span="19">
+            <template>
+                <el-row style="height: 72vh"
+                        v-loading="loadCircle"
+                        element-loading-text="加载中"
+                        element-loading-spinner="el-icon-loading"
+                        element-loading-background="rgba(0, 0, 0, 0.8)">
+                    <!--图书卡片样式1-->
+                    <el-col v-if="bookCardStyle===true" :span="3" v-for="(item,index) in tableData" :key="item.id"
+                            :offset="1">
+                        <div style="min-height: 12px;"></div>
+                        <el-card :body-style="{ padding: '0px' }" style="opacity: 95%" shadow="always">
+                            <el-image v-if="item.imagePath" :src='item.imagePath' fit="cover"
+                                      @click="detailsJump(item.id)"
+                                      style="height: 139px;width: 90%;padding: 5px;cursor: pointer"></el-image>
+                            <div style="height: 100px">
+                                <div style="height: 50%;">
+                                    <span id="textAbbreviation"
+                                          style="font-size: 12px;color: #303133;cursor: pointer;white-space:nowrap;
+                                          overflow:hidden;text-overflow:ellipsis;"
+                                          @click="detailsJump(item.id)">
+                                        {{item.bookName}} <el-divider direction="vertical"></el-divider>
+                                        {{item.author}}·著
+                                    </span>
+                                </div>
+                                <div style="height: 20%">
+                                    <span style="font-size: 5px;color:#909399">销量：{{item.sales}}</span>
+                                    <span style="padding-left: 20px;color: #fc9c3e;
+                                        font-size: 15px;font-family: 华文新魏;">
+                                            ￥：{{item.price}}</span>
+                                </div>
+                                <el-button type="primary"
+                                           style="background: #FCB065; border-style:none;float:right"
+                                           size="mini" @click="addShoppingCar(item.id)" round>加入购物车
+                                </el-button>
+                            </div>
+                        </el-card>
+                    </el-col>
+                    <!--图书卡片样式二-->
+                    <el-col v-if="bookCardStyle===false" :span="7" v-for="(item,index) in tableData" :key="item.id"
+                            :offset="1">
+                        <div style="min-height: 18px;"></div>
+                        <el-card :body-style="{ padding: '0px' }" style="opacity: 95%" shadow="always">
+                            <el-row>
+                                <el-col :span="9" style="height: 150px;">
+                                    <el-image v-if="item.imagePath" :src='item.imagePath' fit="cover"
+                                              @click="detailsJump(item.id)"
+                                              style="height: 139px;width: 90%;padding: 5px;cursor: pointer"></el-image>
+                                </el-col>
+                                <el-col :span="15" style="height: 120px">
+                                    <div style="height: 39%;">
+                                        <div style="font-size: 13px;cursor: pointer" @click="detailsJump(item.id)">
+                                            {{item.bookName}}
+                                            <el-divider direction="vertical"></el-divider>
+                                            {{item.author}}
+                                        </div>
+                                    </div>
+                                    <div style="height: 20%;color: #8c93a2;font-size: 10px">
+                                        <span>出版社：{{item.publishingHouse}}</span>
+                                    </div>
+                                    <div style="height: 20%;color: #8c93a2;font-size: 10px">
+                                        分类：
+                                        <span v-for="(item, indexIt) in sortTagRecordArray[index]" :key="indexIt">
+                                            <el-tag size="mini">{{item}}</el-tag>
+                                            <span style="width:1px"></span>
+                                        </span>
+                                    </div>
+                                    <div style="height: 20%;color: #8c93a2;font-size: 10px">
+                                        <span>销量：{{item.sales}}</span>
+                                        <span style="padding-left: 90px;color: #fc9c3e;
+                                        font-size: 15px;font-family: 华文新魏;">
+                                            ￥：{{item.price}}</span>
+                                    </div>
+                                    <div style="height: 39%;">
+                                        <el-rate style="float: left;"
+                                                 v-model="item.overallRating"
+                                                 disabled
+                                                 text-color="#ff9900"></el-rate>
+                                        <el-button type="primary"
+                                                   style="background: #FCB065; border-style:none;float:right"
+                                                   size="mini" round @click="(item)">加入购物车
+                                        </el-button>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </el-card>
+                    </el-col>
+                </el-row>
+                <!--<el-button @click="bookCardStyle=false"> ee</el-button>-->
+                <!--分页条-->
+                <div class="block">
+                    <el-pagination
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                            :current-page="currentPage"
+                            :page-sizes="[12,9]"
+                            :page-size="stepSize"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            :total="bookTotal">
+                    </el-pagination>
+                </div>
+            </template>
+        </el-col>
+    </el-row>
+    <!--用户详细信息抽屉-->
+    <el-drawer
+            title="我是标题"
+            :visible.sync="drawer"
+            :show-close="false"
+            :with-header="false"
+            size="15%">
+        <h3 style="font-family: 华文新魏;"><i class="el-icon-user-solid"></i>用户个人中心</h3>
+        <el-divider></el-divider>
+        <div style="height: 150px;;display: flex;justify-content: center;">
+            <el-image v-if="imageUrl" :src="imageUrl" style="border-radius:65px;height: 130px;width: 130px;"></el-image>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="personalInformation=true">
+                <span style=""><i class="el-icon-user"></i> 个人信息</span>
+            </el-card>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="userDataRevise()">
+                <span style=""><i class="el-icon-edit"></i> 信息修改</span>
+            </el-card>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="myWallet()">
+                <span style=""><i class="el-icon-s-finance"></i> 我的钱包</span>
+            </el-card>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="purchasedWindow()">
+                <span style=""><i class="el-icon-goods"></i> 已购图书</span>
+            </el-card>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="sellBooksDialogEvent()">
+                <span style=""><i class="el-icon-s-shop"></i> 售卖图书</span>
+            </el-card>
+        </div>
+        <div>
+            <el-card class="optionCentered" shadow="hover" @click.native="salesManagement()">
+                <span style=""><i class="el-icon-pie-chart"></i> 售卖管理</span>
+            </el-card>
+        </div>
+
+    </el-drawer>
+    <!--用户个人信息弹窗-->
+    <el-dialog
+            title="用户个人信息"
+            :visible.sync="personalInformation"
+            width="50%">
+        <el-descriptions :column="2">
+            <el-descriptions-item label="昵称">{{userData.userName}}</el-descriptions-item>
+            <el-descriptions-item label="手机号">{{userData.phoneNumber}}</el-descriptions-item>
+            <el-descriptions-item label="备注">
+                <el-tag size="small">{{userTag}}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="联系地址">{{userData.address}}</el-descriptions-item>
+        </el-descriptions>
+    </el-dialog>
+    <!--信息修改弹窗，来个密码验证-->
+    <el-dialog
+            title="个人信息修改"
+            :visible.sync="informationModification"
+            width="39%">
+        <div style="display: flex;justify-content: center;">
+            <div style="width: 200px;height: 220px">
+                <el-upload
+                        class="avatar-uploader"
+                        action=""
+                        :show-file-list="false"
+                        :http-request="httpRequest"
+                        :before-upload="beforeAvatarUpload"
+                        style="padding-top: 25px">
+                    <img v-if="updateImageUrl" :src="updateImageUrl" class="avatar">
+                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                </el-upload>
+            </div>
+            <el-form label-position="left" label-width="80px" ref="updateUserData" :model="updateUserData"
+                     :rules="rules">
+                <el-form-item label="用户昵称">
+                    <el-input v-model="updateUserData.userName" maxlength="9" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item label="手机号" prop="phoneNumber">
+                    <el-input v-model.number="updateUserData.phoneNumber" maxlength="11" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item label="登陆密码" prop="userPassword">
+                    <el-tooltip class="item" effect="light" content="由数字、字母组成的12位以内密码" placement="right">
+                        <el-input v-model="updateUserData.userPassword" maxlength="12" show-password></el-input>
+                    </el-tooltip>
+                </el-form-item>
+                <el-form-item label="支付密码" prop="paymentPassword">
+                    <el-tooltip class="item" effect="light" content="6位数字密码" placement="right">
+                        <el-input v-model="updateUserData.paymentPassword" maxlength="6"
+                                  :disabled="paymentPasswordRevise"
+                                  show-password></el-input>
+                    </el-tooltip>
+                </el-form-item>
+                <el-form-item label="地址">
+                    <el-input type="textarea" v-model="updateUserData.address"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <div style="display: flex;justify-content: center;align-items: Center;">
+                        <el-button style="color: #ffffff;font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;padding-right: 30px" @click="updateUserForm('updateUserData')" round>确 认
+                        </el-button>
+                    </div>
+                </el-form-item>
+            </el-form>
+        </div>
+        <div style="display: flex;justify-content: center;">
+            是否修改支付密码（开关打开时，支付密码的修改才生效）
+            <el-switch
+                    v-model="paymentPasswordSwitch"
+                    active-color="#9ce7e7"
+                    inactive-color="#efefef"
+                    active-text="是"
+                    inactive-text="否"
+                    @click.native="paymentPasswordModifySwitch">
+            </el-switch>
+        </div>
+    </el-dialog>
+    <!--支付密码确认弹窗-->
+    <el-dialog
+            title="请输入支付密码"
+            :visible.sync="paymentPasswordDialogVisible"
+            width="25%">
+        <div style="display: flex;justify-content: center;align-items: Center;">
+            <el-input v-model="enterPaymentPassword" maxlength="6" style="width: 200px" show-word-limit></el-input>
+            <span style="width: 25px"></span>
+            <el-button style="font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;" size="small" @click="paymentPasswordComparison" round>确 定
+            </el-button>
+        </div>
+    </el-dialog>
+    <!--我的钱包弹窗-->
+    <el-dialog
+            title="我的钱包"
+            :visible.sync="walletDialogVisible"
+            :before-close="walletDialogVisibleClose"
+            width="25%">
+        <div style="display: flex;justify-content: center;align-items: Center;">
+            <h3 style="font-family: 华文宋体;">余额：{{userData.balance}}</h3>
+            <span style="width: 25px"></span>
+            <el-button @click="userData.balance+=100" style="font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;" size="small" round>充值 ￥100
+            </el-button>
+        </div>
+    </el-dialog>
+    <!--售卖图书弹窗-->
+    <el-dialog
+            title="图书挂售信息"
+            :visible.sync="sellBooksDialog"
+            width="52%">
+        <div style="width: 100%;height: 110px;">
+            <span style="float:left;padding-top: 35px;">图片上传：&emsp;   </span>
+            <el-upload
+                    ref="pictureUpload"
+                    action="#"
+                    list-type="picture-card"
+                    :auto-upload="false"
+                    :disabled="sellBookImageDisabled"
+                    :on-change="bookImageChange"
+            >
+                <i slot="default" class="el-icon-plus"></i>
+                <div slot="file" slot-scope="{file}">
+                    <img class="el-upload-list__item-thumbnail" :src="file.url" alt="">
+                    <span class="el-upload-list__item-actions">
+                         <span class="el-upload-list__item-preview" @click="handlePictureCardPreview(file)">
+                         <i class="el-icon-zoom-in"></i>
+                         </span>
+                         <span class="el-upload-list__item-delete" @click="handleRemove(file)">
+                         <i class="el-icon-delete"></i>
+                         </span>
+                         </span>
+                </div>
+            </el-upload>
+            <!--预览图片弹窗-->
+            <el-dialog :visible.sync="dialogVisible">
+                <img width="100%" v-if="dialogImageUrl" :src="dialogImageUrl" alt="">
+            </el-dialog>
+            <!-- <img v-if="sellBookImageUrl" :src="sellBookImageUrl" class="avatar">-->
+        </div>
+        <el-form label-position="right" label-width="80px" ref="bookData" :model="bookData"
+                 :rules="sellBookRules" :inline="true">
+            <el-form-item label="书名" prop="bookName" style="width: 150%;">
+                <el-input type="textarea" v-model="bookData.bookName" :rows="3" placeholder="图书简介"
+                          style="width: 180%;"></el-input>
+            </el-form-item>
+            <el-form-item label="作者" prop="author">
+                <el-input v-model="bookData.author"></el-input>
+            </el-form-item>
+            <el-form-item label="出版社" prop="publishingHouse">
+                <el-input v-model="bookData.publishingHouse"></el-input>
+            </el-form-item>
+            <el-form-item label="图书分类">
+                <!--后续这里至少要有一个判断才能提交表单-->
+                <el-tag class="sortTag" type="info">小说</el-tag>
+                <el-tag class="sortTag" type="info">科幻</el-tag>
+                <el-tag class="sortTag" type="info">教辅</el-tag>
+                <el-tag class="sortTag" type="info">计算机</el-tag>
+                <el-tag class="sortTag" type="info">文学</el-tag>
+                <el-tag class="sortTag" type="info">工具书</el-tag>
+                <el-tag class="sortTag" type="info">名著</el-tag>
+                <el-tag class="sortTag" type="info">杂志</el-tag>
+                <el-tag class="sortTag" type="info">诗词</el-tag>
+            </el-form-item>
+            <el-form-item label="价格" prop="price">
+                <!--有一个校验规则-->
+                <el-input v-model="bookData.price"></el-input>
+            </el-form-item>
+            <el-form-item label="出售数量" prop="inStock">
+                <!--有一个校验规则-->
+                <el-input v-model="bookData.inStock"></el-input>
+            </el-form-item>
+            <!--卖家id自动录入-->
+            <!--用户每一次买或取消订单都更新销量-->
+            <!--每一次评价综合评分都计算-->
+            <el-form-item style="width: 200%;">
+                <div style="padding-left: 300%">
+                    <el-button style="color: #ffffff;font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;" @click="sellBookForm('bookData')" round>确 认
+                    </el-button>
+                </div>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+</div>
+</body>
+<script>
+    new Vue({
+        el: "#app",
+        // 挂载完成，Vue初始化成功，HTML页面渲染成功，加载数据
+        mounted() {
+            this.userDataLoadAndBookDataLoad();
+        },
+        data() {
+            let checkAccount = (rule, value, callback) => {
+                if (!value) {
+                    return callback(new Error('账号不能为空'));
+                }
+                setTimeout(() => {
+                    if (!(/^1[3-9]\d{9}$/.test(value))) {
+                        callback(new Error('要求11位电话号码'))
+                    } else {
+                        callback();
+                    }
+                }, 300);
+            };
+            let validatePass = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入密码'));
+                } else if (!(/^[A-Za-z0-9]+$/.test(value))) {
+                    callback(new Error('要求数字或字母'));
+                } else {
+                    callback();
+                }
+            };
+            let validatePaymentPassword = (rule, value, callback) => {
+                if (!value) {
+                    return callback(new Error('密码不能为空'));
+                }
+                setTimeout(() => {
+                    if (!(/^\d{6}$/.test(value))) {
+                        callback(new Error('要求6位数字密码'));
+                    } else {
+                        callback();
+                    }
+                }, 300);
+            };
+            let validateBookName = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('书名不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validateAuthor = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('作者不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validatePublishingHouse = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('出版社不能为空'));
+                } else {
+                    callback();
+                }
+            };
+            let validatePrice = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入价格'));
+                } else if (!(/^\d{1,5}[\\.]?\d?$/.test(value))) {
+                    callback(new Error('最多可以有一位小数，且价格合理'));
+                } else {
+                    callback();
+                }
+            };
+            let validateInStock = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入出售数量'));
+                } else if (!(/^[1-9]+$/.test(value))) {
+                    callback(new Error('要求正整数'));
+                } else {
+                    callback();
+                }
+            };
+            return {
+                rules: {
+                    phoneNumber: [
+                        {validator: checkAccount, trigger: 'blur'}
+                    ],
+                    userPassword: [
+                        {validator: validatePass, trigger: 'blur'}
+                    ],
+                    paymentPassword: [
+                        {validator: validatePaymentPassword, trigger: 'blur'}
+                    ],
+                },
+                // 购物车对象，加购
+                shoppingCar: {
+                    id: '',
+                    userId: '',
+                    bookId: '',
+                    shoppingQuantity: '',
+                },
+                // 查询条件对象
+                selectBookCondition: {
+                    bookName: '',
+                    priceStart: '',
+                    priceEnd: '',
+                    sort: '',
+                    onlyInStock: '',
+                },
+                // 侧边导航栏的index为键的map
+                priceMap: new Map([
+                    ['1-1', {start: 0, end: 20}],
+                    ['1-2', {start: 20, end: 50}],
+                    ['1-3', {start: 50, end: 70}],
+                    ['1-4', {start: 70, end: 100}],
+                    ['1-5', {start: 100, end: 1000}]
+                ]),
+                sortMap: new Map([
+                    ['2-1', "小说"],
+                    ['2-2', "科幻"],
+                    ['2-3', "教辅"],
+                    ['2-4', "计算机"],
+                    ['2-5', "文学"],
+                    ['2-6', "工具书"],
+                    ['2-7', "名著"],
+                    ['2-8', "杂志"],
+                    ['2-9', "诗词"]
+                ]),
+                // 出售图书表单规则绑定
+                sellBookRules: {
+                    bookName: [
+                        {validator: validateBookName, trigger: 'blur'}
+                    ],
+                    author: [
+                        {validator: validateAuthor, trigger: 'blur'}
+                    ],
+                    publishingHouse: [
+                        {validator: validatePublishingHouse, trigger: 'blur'}
+                    ],
+                    price: [
+                        {validator: validatePrice, trigger: 'blur'}
+                    ],
+                    inStock: [
+                        {validator: validateInStock, trigger: 'blur'}
+                    ],
+                },
+                // 防止出售图书分类标签重复渲染，后面再弄吧
+                /* sortTagRender: '',*/
+                // 图书图片表
+                bookImage: {
+                    id: '',
+                    bookId: '',
+                    image: '',
+                },
+                // 图书信息
+                bookData: {
+                    id: '',
+                    bookName: '',
+                    author: '',// 作者
+                    publishingHouse: '',// 出版社
+                    sort: '',// 类别
+                    price: '',// 价格
+                    inStock: '',// 初始库存
+                    sales: '',// 销量
+                    userId: '',// 卖家
+                    overallRating: '',// 图书综合评分
+                    coverData: ''// 图书封面
+                },
+                // 字节数组和base64编码
+                arrayAndBase64: {
+                    bytes: "",
+                    base64String: ""
+                },
+                /*个人信息*/
+                userData: {
+                    id: "",
+                    userName: "",
+                    phoneNumber: "", // 电话号码
+                    userPassword: "", // 登陆密码
+                    address: "", // 地址
+                    wallet: "", // 是否开通钱包
+                    balance: "", // 余额
+                    paymentPassword: "", // 支付密码
+                    merchant: "", // 是否是商家
+                    avatarData: "", // 头像字节数据
+                    // listings: [5, 6, 7],// 上架商品清单 在另一个表
+                    // booksPurchased: [1, 2, 5], 在另一张表
+                },
+
+                // 个人信息修改表单
+                updateUserData: {
+                    userName: "muxiao",
+                    userPassword: "123456",
+                    phoneNumber: "15177511418",
+                    paymentPassword: "123456",
+                    address: "", // 地址
+                    avatarData: "",
+                    wallet: "", // 是否开通钱包
+                },
+                /*加载圈圈*/
+                loadCircle: true,
+                /*分页条*/
+                // 默认所在页
+                currentPage: 1,
+                // 每页显示数
+                stepSize: 12,
+                // 总记录数
+                bookTotal: 19,
+                /*图书展示卡片*/
+                bookCardStyle: true,
+                // 图书类别标签数组
+                sortTagRecordArray: [],
+                /*售卖图书*/
+                // 禁用上传
+                sellBookImageDisabled: false,
+                // 图片预览的一些属性
+                dialogImageUrl: '',
+                dialogVisible: false,
+                // 上传图片回显
+                sellBookImageUrl: '',
+                // 对话框
+                sellBooksDialog: false,
+                /*我的钱包*/
+                // 我的钱包弹窗
+                walletDialogVisible: false,
+                // 支付密码修改开关
+                paymentPasswordSwitch: false,
+                // 修改窗口字符密码输入禁用
+                paymentPasswordRevise: true,
+                // 修改窗口头像预览
+                updateImageUrl: "",
+                // 支付密码确认弹窗
+                paymentPasswordDialogVisible: false,
+                // 支付密码输入数据
+                enterPaymentPassword: "",
+                // 头像预览地址
+                imageUrl: '',
+                // 头像的Base64编码
+                imageBase64: '',
+                // 用户个人信息弹窗
+                personalInformation: false,
+                // 用户标签
+                userTag: "",
+                // 用户信息修改弹窗
+                informationModification: false,
+                // 抽屉打开
+                drawer: false,
+                // 侧边菜单默认打开
+                defaultOpened: ['2'],
+                // 只看有货选择
+                checked: false,
+                // 搜索框数据
+                search: '',
+                // 书籍数据集合
+                tableData: [{
+                    id: '1',
+                    bookName: '银河银河银河银银',
+                    author: '潇潇',// 作者
+                    publishingHouse: '湖南出版社',// 出版社
+                    sort: '科幻-小说',// 类别
+                    price: '66.6',// 价格
+                    inStock: '2',// 初始库存
+                    sales: '1',// 销量
+                    userId: '',// 卖家
+                    overallRating: 3.0,// 图书综合评分
+                    imagePath: './image/wallhaven-eowo18.jpg',//图书封面
+                }, {
+                    id: '2',
+                    bookName: '银河银河银河银银',
+                    author: '潇潇',// 作者
+                    publishingHouse: '湖南出版社',// 出版社
+                    sort: '科幻-小说',// 类别
+                    price: '66.6',// 价格
+                    inStock: '2',// 初始库存
+                    sales: '1',// 销量
+                    userId: '',// 卖家
+                    overallRating: 3.0,// 图书综合评分
+                    imagePath: './image/wallhaven-eowo18.jpg',//图书封面
+                }, {
+                    id: '3',
+                    bookName: '银河银河银河银银',
+                    author: '潇潇',// 作者
+                    publishingHouse: '湖南出版社',// 出版社
+                    sort: '科幻-小说',// 类别
+                    price: '66.6',// 价格
+                    inStock: '2',// 初始库存
+                    sales: '1',// 销量
+                    userId: '',// 卖家
+                    overallRating: 3.0,// 图书综合评分
+                    imagePath: './image/wallhaven-eowo18.jpg',//图书封面
+                },],
+            };
+        },
+        methods: {
+            /*图书详情跳转*/
+            detailsJump(bookId) {
+                window.location.href = "productDetails.html?value=" + bookId;
+            },
+            /*只看有货事件*/
+            onlyInStockEvent(val) {
+                this.selectBookCondition.onlyInStock = val;
+                this.bookDataLoad();
+            },
+            /*加入购物车按钮*/
+            addShoppingCar(bookId) {
+                this.shoppingCar.bookId = bookId;
+                this.shoppingCar.userId = this.userData.id;
+                this.shoppingCar.shoppingQuantity = 1;
+                let bookRemaining = 0;
+                /**
+                 * 这里防止的是由于使用了上一次的book数据，对于在这期间有用户购买了图书等行为还没有同步到本地，
+                 * 导致加购数量多余库存数
+                 *
+                 * 优化，后续购物车显示无货水印，并对于加入购物车多于库存的自动减少（每次操作shopping表时）
+                 */
+                let _this = this;
+                axios.get("http://localhost/frontPage/selectBookRemaining/" + bookId).then(resp => {
+                    if (resp.data.code === 2001) {
+                        bookRemaining = resp.data.data;
+                    }
+                    if (bookRemaining <= 0) {
+                        this.$message.info("商品已售罄");
+                        return;
+                    }
+                    axios.post("http://localhost/frontPage/shoppingQuantity", _this.shoppingCar).then(resp => {
+                        if (resp.data.code === 2001) {
+                            if (resp.data.data + 1 > bookRemaining) {
+                                this.$message.info("加购数大于库存，不能再加购了");
+                                return;
+                            }
+                            axios.post("http://localhost/frontPage/addShoppingCar", _this.shoppingCar).then(resp => {
+                                if (resp.data.code === 2001) {
+                                    this.$message.success(resp.data.message);
+                                }
+                            });
+                        }
+                    });
+                });
+            },
+            /*搜索按钮*/
+            searchBookButton() {
+                this.selectBookCondition.bookName = this.search;
+                this.bookDataLoad();
+            },
+            /*分页*/
+            handleSizeChange(val) {
+                this.stepSize = val;
+                console.log(`每页 ${val} 条`);
+                this.bookDataLoad();
+            },
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                console.log(`当前页: ${val}`);
+                this.bookDataLoad();
+            },
+            /*页面挂载完成后*/
+            // 加载图书数据
+            bookDataLoad() {
+                let _this = this;
+                axios.post("http://localhost/frontPage/" + _this.currentPage + "/" + _this.stepSize, _this.selectBookCondition).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.loadCircle = false;
+                        // 卡片样式判断
+                        this.bookCardStyle = this.stepSize === 12;
+                        this.tableData = resp.data.data.records;
+                        console.log(this.tableData)
+                        this.bookTotal = resp.data.data.total;
+                        // 类别标签处理
+                        this.sortTagRecordArray = [];
+                        let len = this.tableData.length;
+                        for (let i = 0; i < len; i++) {
+                            let data = this.tableData[i];
+                            let dataArray = data.sort.split("-");
+                            for (let j = 0; j < dataArray.length; j++) {
+                                if (dataArray[j] == "") dataArray.splice(j, 1);
+                            }
+                            this.sortTagRecordArray.push(dataArray);
+                        }
+                    } else {
+                        this.$message.error(resp.data.message);
+                        window.location.href = "logIn.html";
+                    }
+                });
+            },
+            // 加载用户数据
+            userDataLoadAndBookDataLoad() {
+                axios.get("http://localhost/frontPage").then((resp) => {
+                    if (resp.data.code === 2001) {
+                        this.userData = resp.data.data;
+                        this.arrayAndBase64.bytes = this.userData.avatarData;
+                        this.userTag = this.userData.merchant ? "商户" : "普通用户";
+                        if (this.userData.address === null) this.userData.address = "无";
+                        this.imageUrl = this.userData.avatarImagePath;
+                        this.imageBase64 = this.userData.avatarImagePath;
+                        this.bookDataLoad();
+                    } else {
+                        this.$message.error(resp.data.message);
+                        window.location.href = "logIn.html";
+                    }
+                });
+            },
+            /*售卖管理跳转*/
+            salesManagement() {
+                window.location.href = "bookManage.html";
+            },
+            /*已购图书窗口跳转方法*/
+            purchasedWindow() {
+                window.location.href = "purchased.html";
+            },
+            // 售卖图书提交
+            sellBookForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        let sort = '';// 暂时存储类别
+                        // 上传图片数据
+                        let uploadImageFiles = this.$refs.pictureUpload.uploadFiles;
+                        // 检查图书是否上传
+                        if (uploadImageFiles.length < 1) {
+                            this.$message.info("请完善图片信息");
+                            return false;
+                        }
+                        // 检查分类是否选择了
+                        let sortTagArray = document.getElementsByClassName("sortTag");
+                        let len = sortTagArray.length;
+                        for (let j = 0; j < len; j++) {
+                            let e = sortTagArray[j];
+                            if (e.style.backgroundColor === "rgb(156, 231, 231)") {
+                                sort += e.innerHTML + '-';
+                            }
+                        }
+                        if (sort === '') {
+                            this.$message.info("请完善分类信息");
+                            return false;
+                        }
+                        // 在这里就关闭弹窗，减少等待，后面不 return false 了
+                        this.sellBooksDialog = false;
+                        /*好了，可以提交数据了*/
+                        this.bookData.userId = this.userData.id;
+                        this.bookData.sort = sort;
+                        let _this = this;
+                        // 处理上传照片数据
+                        let bookImageFrom = new FormData();
+                        let imageLen = uploadImageFiles.length;
+                        for (let j = 0; j < imageLen; j++) {
+                            bookImageFrom.append('multipartFile', uploadImageFiles[j].raw);
+                        }
+                        // 先添加图书数据，等待返回图书id，然后添加图片数据
+                        axios.post("http://localhost/frontPage", _this.bookData).then(resp => {
+                            if (resp.data.code !== 2001) {// 先排除出错的情况
+                                this.$message.error(resp.data.message);
+                            }
+                            // this.bookImage.bookId = resp.data.data;
+                            axios.post("http://localhost/frontPage/addBookImage/" + resp.data.data, bookImageFrom).then(resp => {
+                                if (resp.data.code !== 2001) {// 先排除出错的情况
+                                    this.$message.error(resp.data.message);
+                                }
+                                this.bookDataLoad();
+                                this.$message.success("图书挂售成功");
+                            });
+                            // 清空上传图片
+                            uploadImageFiles.splice(0, uploadImageFiles.length);
+                            // 清空图书表单
+                            Object.keys(this.bookData).forEach(key => {
+                                this.bookData[key] = ''
+                            });
+                        });
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                });
+            },
+            // 售卖图书窗口开启事件
+            sellBooksDialogEvent() {
+                this.sellBooksDialog = true;
+                this.sortTagEvent();// 要渲染才能获取
+            },
+            // 售卖图书的类别选择的标签事件
+            sortTagEvent() {
+                setTimeout(() => {
+                    let sortTagArray = document.getElementsByClassName("sortTag");
+                    let len = sortTagArray.length;
+                    for (let j = 0; j < len; j++) {
+                        let e = sortTagArray[j];
+                        e.onclick = function () {
+                            console.log(e.style.backgroundColor)
+                            if (e.style.backgroundColor === "rgb(156, 231, 231)") {
+                                e.style.backgroundColor = "#FFFFFF";
+                            } else {
+                                e.style.backgroundColor = "#9ce7e7";
+                            }
+                        }
+                    }
+
+                }, 1000);
+            },
+            // 售卖图书上传图片超出限制的钩子
+            bookImageChange() {
+                if (this.$refs.pictureUpload.uploadFiles.length >= 5) {
+                    this.$message.info("最多可以上传5张图片");
+                    this.sellBookImageDisabled = true;
+                }
+            },
+            // 售卖图书上传图片的一些方法
+            handleRemove(file) {
+                let uploadFiles = this.$refs.pictureUpload.uploadFiles
+                for (let i = 0; i < uploadFiles.length; i++) {
+                    if (uploadFiles[i]['url'] == file.url) {
+                        uploadFiles.splice(i, 1);
+                        this.sellBookImageDisabled = false;
+                    }
+                }
+            },
+            handlePictureCardPreview(file) {
+                console.log(this.$refs.pictureUpload.uploadFiles);
+                this.dialogImageUrl = file.url;
+                this.dialogVisible = true;
+            },
+            // 我的钱包，先简单点，后续可以再完善
+            myWallet() {
+                if (!this.userData.wallet) {
+                    this.$alert('检测到您未开通钱包，已自动开通', '通知', {
+                        confirmButtonText: '确定',
+                        callback: action => {
+                            this.$message.info("谢谢");
+                            this.walletDialogVisible = true;
+                            this.userData.wallet = true;
+                        }
+                    });
+                } else {
+                    this.walletDialogVisible = true;
+                }
+            },
+            // 我的钱包窗口关闭，更新数据
+            walletDialogVisibleClose(done) {
+                let _this = this;
+                done();// 用于关闭对话框
+                axios.put("http://localhost/frontPage", _this.userData).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                    } else {
+                        this.$message.error(resp.data.message);
+                        this.userData = resp.data.data;
+                    }
+                });
+
+            },
+            // 信息修改弹窗
+            userDataRevise() {
+                this.updateUserData.userName = this.userData.userName;
+                this.updateUserData.userPassword = this.userData.userPassword;
+                this.updateUserData.phoneNumber = this.userData.phoneNumber;
+                this.updateUserData.paymentPassword = this.userData.paymentPassword;
+                this.updateUserData.address = this.userData.address;
+                this.updateUserData.wallet = this.userData.wallet;
+                this.updateUserData.avatarData = this.userData.avatarData;
+                this.updateImageUrl = this.imageUrl;
+                this.informationModification = true;
+            },
+            // 支付密码修改确认
+            paymentPasswordModifySwitch() {
+                if (!this.updateUserData.wallet) {
+                    this.$alert('由于您还未开通钱包，已自动临时开通，初始密码为：123456(在完成本次信息修改后永久开通)', '通知', {
+                        confirmButtonText: '确定',
+                        callback: action => {
+                            this.updateUserData.wallet = true;
+                            this.paymentPasswordDialogVisible = true;
+                        }
+                    });
+                } else {
+                    this.paymentPasswordDialogVisible = true;
+                }
+            },
+            // 支付密码比对
+            paymentPasswordComparison() {
+                if (!(this.enterPaymentPassword === this.updateUserData.paymentPassword)) {
+                    this.paymentPasswordSwitch = false;
+                    this.$message.error("输入密码错误");
+                    this.enterPaymentPassword = "";
+                } else {
+                    this.$message.success("输入正确");
+                    this.paymentPasswordRevise = false;
+                }
+                this.paymentPasswordDialogVisible = false;
+            },
+            // 修改表单提交
+            updateUserForm(formName) {
+                let _this = this;
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.userData.userName = this.updateUserData.userName;
+                        this.userData.userPassword = this.updateUserData.userPassword;
+                        this.userData.phoneNumber = this.updateUserData.phoneNumber;
+                        this.userData.paymentPassword = this.updateUserData.paymentPassword;
+                        this.userData.address = this.updateUserData.address;
+                        this.userData.wallet = this.updateUserData.wallet;
+                        this.userData.avatarData = this.updateUserData.avatarData;
+                        this.informationModification = false;
+                        axios.put("http://localhost/frontPage", _this.userData).then(resp => {
+                            if (resp.data.code === 2001) {
+                                this.$message.success(resp.data.message);
+                                this.imageUrl = this.updateImageUrl;
+                            } else {
+                                this.$message.error(resp.data.message);
+                                this.userData = resp.data.data;
+                            }
+                        });
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                });
+            },
+            /*头像上传相关方法*/
+            // 手动上传
+            httpRequest(param) {
+                console.log(param)
+                let formData = new FormData();
+                formData.append('file', param.file);
+                axios.post("http://localhost/frontPage/imageBase64", formData).then((resp) => {
+                    if (resp.data.code === 2001) {
+                        this.updateImageUrl = "data:image/png;base64," + resp.data.data.base64String;
+                        this.updateUserData.avatarData = resp.data.data.bytes;
+                        this.$message.success(resp.data.message);
+                    } else {
+                        this.$message.error(resp.data.message);
+                    }
+                });
+            },
+            // 上传图片前做判断限制
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只可以是jpg、png、jpeg格式!');
+                }
+                if (!isLt5M) {
+                    this.$message.error('上传头像图片大小不能超过5MB!');
+                }
+                return isJPG && isLt5M;
+            },
+            aa() {
+                // alert("ddddds")
+            },
+            /*菜单激活回调,index: 选中菜单项的 index, indexPath: 选中菜单项的 index path*/
+            handleSelect(key, keyPath) {
+                if (key == 0) {
+                    console.log("全部图书");
+                    // 清空
+                    Object.keys(this.selectBookCondition).forEach(key => {
+                        this.selectBookCondition[key] = '';
+                    });
+                    this.checked = false;
+                } else {
+                    Object.keys(this.selectBookCondition).forEach(key => {
+                        if (key !== "bookName" && key !== "onlyInStock") this.selectBookCondition[key] = '';
+                    });
+                }
+                if (keyPath[0] == 1) {
+                    this.selectBookCondition.priceStart = this.priceMap.get(key).start;
+                    this.selectBookCondition.priceEnd = this.priceMap.get(key).end;
+                    console.log("价格")
+                }
+                if (keyPath[0] == 2) {
+                    this.selectBookCondition.sort = this.sortMap.get(key);
+                    console.log("分类")
+                }
+                console.log(this.selectBookCondition);
+                this.bookDataLoad();
+            },
+            handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+            },
+        },
+        /*还没起作用*/
+        s() {
+            /*卡片中书名到一定数量改为缩略,v-for每次都调用*/
+            let textAbbreviation = document.getElementById("textAbbreviation");
+            let str = textAbbreviation.innerHTML;
+            console.log(str.length);
+            if (str.length > 9) {
+                textAbbreviation.innerHTML = str.substring(0, 8) + "...";
+            }
+        }
+    })
+</script>
+
+</html>

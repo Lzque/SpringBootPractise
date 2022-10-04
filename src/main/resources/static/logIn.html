@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录与注册</title>
+</head>
+<script src="./js/vue.js"></script>
+<script src="./element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="./element-ui/lib/theme-chalk/index.css">
+<script src="./js/axios-0.18.0.js"></script>
+<style lang="scss">
+    /*背景设置*/
+    body {
+        background-image: url("./image/wallhaven.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-attachment: fixed;
+    }
+
+    /*第一行占高*/
+    .grid-content {
+        border-radius: 4px;
+        min-height: 100px;
+    }
+
+    /*表单标签颜色*/
+    .item .el-form-item__label {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 20px
+    }
+
+    /*输入框样式*/
+    .el-input {
+        opacity: 80%;
+        font-size: 15px
+    }
+
+    /*按钮透明及字体设置*/
+    .term {
+        color: #ffffff;
+        font-family: 华文新魏;
+        background: transparent !important;
+        font-size: 20px
+    }
+
+    /*注册表单样式*/
+    .el-dialog {
+        background-image: url("./image/wallhaven-lmkwwy.jpg");
+    }
+
+    /*注册表单标题样式*/
+    .el-dialog__title {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 20px;
+    }
+
+    /*标题样式*/
+    .caption {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 30px;
+        display: flex;
+        justify-content: center; /*水平居中*/
+        align-items: Center; /*垂直居中*/
+        min-height: 90px;
+    }
+
+    /*用户头像上传样式*/
+    .avatar-uploader .el-upload {
+        border: 1px dashed #ffffff;
+        border-radius: 6px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .avatar-uploader .el-upload:hover {
+        border-color: #ffffff;
+    }
+
+    .avatar-uploader-icon {
+        font-size: 28px;
+        color: #8c939d;
+        width: 178px;
+        height: 178px;
+        line-height: 178px;
+        text-align: center;
+    }
+
+    .avatar {
+        width: 178px;
+        height: 178px;
+        display: block;
+    }
+
+</style>
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="9">
+            <div class="caption">校园二手书籍交易平台</div>
+        </el-col>
+    </el-row>
+    <!--登录表单-->
+    <el-row>
+        <el-col :span="9">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="6">
+            <el-form :model="logInRuleForm" status-icon :rules="logInRules" ref="logInRuleForm" label-width="100px"
+                     class="demo-ruleForm">
+                <el-form-item label="账号" prop="logInAccount" class="item">
+                    <el-tooltip class="item" effect="light" content="注册的电话号码" placement="right">
+                        <el-input v-model.number="logInRuleForm.logInAccount" maxlength="11" show-word-limit></el-input>
+                    </el-tooltip>
+                </el-form-item>
+                <el-form-item label="密码" prop="logInPass" class="item">
+                    <el-input v-model="logInRuleForm.logInPass" autocomplete="off" maxlength="12"
+                              show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <div style="display: flex;justify-content: center;align-items: center;">
+                        <el-button @click="submitLogInForm('logInRuleForm')" class="term">登录</el-button>
+                        <el-button @click="resetForm('logInRuleForm')" class="term">重置</el-button>
+                        <el-button @click="dialogVisible=true" class="term">注册</el-button>
+                    </div>
+                </el-form-item>
+            </el-form>
+        </el-col>
+    </el-row>
+
+    <!--注册弹出对话框表单-->
+    <el-dialog
+            :visible.sync="dialogVisible"
+            title="用户注册"
+            width="39%"
+    >
+        <div style="display: flex;justify-content: center;">
+            <div style="width: 200px;height: 220px;display: flex;align-items: Center;">
+                <el-upload
+                        class="avatar-uploader"
+                        action=""
+                        :http-request="httpRequest"
+                        :show-file-list="false"
+                        :before-upload="beforeAvatarUpload">
+                    <img v-if="imageUrl" :src="imageUrl" class="avatar">
+                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                </el-upload>
+            </div>
+            <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" label-width="100px"
+                     class="demo-ruleForm" style="width: 70%;">
+                <el-form-item label="昵称" prop="userName" class="item">
+                    <el-input v-model.number="ruleForm.userName" maxlength="9" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item label="电话号码" prop="account" class="item">
+                    <el-input v-model.number="ruleForm.account" maxlength="11" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item label="密码" prop="pass" class="item">
+                    <el-input v-model="ruleForm.pass" autocomplete="off" maxlength="12" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item label="确认密码" prop="checkPass" class="item">
+                    <el-input v-model="ruleForm.checkPass" autocomplete="off" maxlength="12" show-word-limit></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <div style="display: flex;justify-content: center;align-items: center;">
+                        <el-button @click="submitRegisterForm('ruleForm')" class="term">提交</el-button>
+                        <el-button @click="resetForm('ruleForm')" class="term">重置</el-button>
+                    </div>
+                </el-form-item>
+            </el-form>
+        </div>
+    </el-dialog>
+
+</div>
+</body>
+
+<script>
+    new Vue({
+        el: "#app",
+        data() {
+            let checkAccount = (rule, value, callback) => {
+                if (!value) {
+                    return callback(new Error('账号不能为空'));
+                }
+                if (!(/^1[3-9]\d{9}$/.test(value))) {
+                    return callback(new Error('要求11位电话号码'))
+                }
+                setTimeout(() => {
+                    if (!Number.isInteger(value)) {
+                        callback(new Error('请输入数字值'));
+                    } else {
+                        callback();
+                    }
+                }, 300);
+            };
+            let validatePass = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入密码'));
+                } else if (!(/^[A-Za-z0-9]+$/.test(value))) {
+                    callback(new Error('要求数字或字母'));
+                } else {
+                    if (this.ruleForm.checkPass !== '') {
+                        this.$refs.ruleForm.validateField('checkPass');
+                    }
+                    callback();
+                }
+            };
+            let validatePass2 = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请再次输入密码'));
+                } else if (value !== this.ruleForm.pass) {
+                    callback(new Error('两次输入密码不一致!'));
+                } else {
+                    callback();
+                }
+            };
+            let checkLogInAccount = (rule, value, callback) => {
+                if (!value) {
+                    return callback(new Error('账号不能为空'));
+                }
+                setTimeout(() => {
+                    if (!Number.isInteger(value)) {
+                        callback(new Error('请输入数字值'));
+                    } else {
+                        callback();
+                    }
+                }, 200);
+            };
+            let checkLogInPass = (rule, value, callback) => {
+                if (value === '') {
+                    callback(new Error('请输入密码'));
+                } else {
+                    callback();
+                }
+            };
+            return {
+                // 存储头像上传的 Base64
+                avatarByteArray: "",
+                // 是否已上传头像
+                uploadAvatar: false,
+                // 头像预览地址
+                imageUrl: "",
+                // 用户数据
+                userData: {
+                    id: "",
+                    userName: "",
+                    phoneNumber: "",
+                    userPassword: "",
+                    avatarData: ""
+                },
+                // 注册表单弹出开关
+                dialogVisible: false,
+                // 注册表单数据
+                ruleForm: {
+                    userName: '',
+                    account: '',
+                    pass: '',
+                    checkPass: '',
+                },
+                // 登录表单数据
+                logInRuleForm: {
+                    logInAccount: '',
+                    logInPass: ''
+                },
+                // 注册规则绑定
+                rules: {
+                    account: [
+                        {validator: checkAccount, trigger: 'blur'}
+                    ],
+                    pass: [
+                        {validator: validatePass, trigger: 'blur'}
+                    ],
+                    checkPass: [
+                        {validator: validatePass2, trigger: 'blur'}
+                    ],
+                },
+                // 登录规则绑定
+                logInRules: {
+                    logInAccount: [
+                        {validator: checkLogInAccount, trigger: 'blur'}
+                    ],
+                    logInPass: [
+                        {validator: checkLogInPass, trigger: 'blur'}
+                    ]
+                }
+            };
+        },
+        methods: {
+            /*头像上传相关方法*/
+            // 手动上传
+            httpRequest(param) {
+                let formData = new FormData();
+                formData.append('file', param.file);
+                axios.post("http://localhost/registerAndLogIn/imageBase64", formData).then((resp) => {
+                    if (resp.data.code === 2001) {
+                        this.imageUrl = "data:image/png;base64," + resp.data.data.base64String;
+                        this.avatarByteArray = resp.data.data.bytes;
+                        this.uploadAvatar = true;
+                        this.$message.success(resp.data.message);
+                    } else {
+                        this.$message.error(resp.data.message);
+                    }
+                });
+            },
+            // 上传图片前做判断限制
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isJPG) {
+                    this.$message.error('上传头像图片只可以是jpg、png、jpeg格式!');
+                }
+                if (!isLt5M) {
+                    this.$message.error('上传头像图片大小不能超过5MB!');
+                }
+                return isJPG && isLt5M;
+            },
+            // 注册表单提交
+            submitRegisterForm(formName) {
+                let _this = this;
+                this.$refs[formName].validate((valid) => {
+                    if (valid && this.uploadAvatar) {
+                        this.userData.userName = this.ruleForm.userName;
+                        this.userData.phoneNumber = this.ruleForm.account;
+                        this.userData.userPassword = this.ruleForm.checkPass;
+                        this.userData.avatarData = this.avatarByteArray;
+                        axios.post("http://localhost/registerAndLogIn/register", _this.userData).then((resp) => {
+                            this.resetForm("ruleForm");
+                            this.imageUrl = "";
+                            if (resp.data.code === 2001) {
+                                this.dialogVisible = false;
+                                this.logInRuleForm.logInAccount = this.userData.phoneNumber;
+                                this.logInRuleForm.logInPass = this.userData.userPassword;
+                                this.$message.success(resp.data.message);
+                            } else {
+                                this.$message.error(resp.data.message);
+                            }
+                            // 清空
+                            Object.keys(this.userData).forEach(key => {
+                                this.userData[key] = ''
+                            });
+                        });
+                    } else {
+                        this.$message.info('请完善信息!');
+                        return false;
+                    }
+                });
+            },
+            // 登录表单提交
+            submitLogInForm(formName) {
+                let _this = this;
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        this.userData.phoneNumber = this.logInRuleForm.logInAccount;
+                        this.userData.userPassword = this.logInRuleForm.logInPass;
+                        axios.post("http://localhost/registerAndLogIn/logIn", _this.userData).then((resp) => {
+                            this.resetForm("logInRuleForm");
+                            if (resp.data.code === 2001) {
+                                this.$message.success(resp.data.message);
+                                window.location.href = "frontPage.html";
+                            } else {
+                                this.$message.error(resp.data.message);
+                            }
+                        });
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                });
+            },
+            // 清空表单
+            resetForm(formName) {
+                this.$refs[formName].resetFields();
+            },
+        }
+    })
+
+</script>
+</html>

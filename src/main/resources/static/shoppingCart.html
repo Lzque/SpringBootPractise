@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>校园二手书籍交易平台</title>
+</head>
+<script src="./js/vue.js"></script>
+<script src="./element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="./element-ui/lib/theme-chalk/index.css">
+<script src="./js/axios-0.18.0.js"></script>
+<style lang="scss">
+    /*背景设置*/
+    body {
+        background-image: url("./image/wallhaven-lmkwwy.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-attachment: fixed;
+        /*背景虚化*/
+        backdrop-filter: blur(3px);
+    }
+
+    /*第一行占高*/
+    .grid-content {
+        border-radius: 4px;
+        min-height: 60px;
+    }
+
+    /*标题样式*/
+    .caption {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 30px;
+        display: flex;
+        justify-content: center; /*水平居中*/
+        align-items: Center; /*垂直居中*/
+        min-height: 50px;
+    }
+
+    /*导航菜单样式*/
+    .el-menu-demo {
+        opacity: 79%;
+    }
+
+    /*下拉导航栏样式*/
+    .el-submenu {
+        font-family: 幼圆;
+    }
+
+    /*导航栏字体样式*/
+    .el-menu-item {
+        font-family: 华文新魏;
+        font-size: 20px;
+    }
+
+    /*导航标签样式*/
+    .navigation-tab {
+        font-family: 华文新魏;
+        font-size: 20px;
+    }
+
+    /*去掉商品表格背景色*/
+    .el-table, .el-table__expanded-cell {
+        background-color: transparent !important;
+    }
+
+    .el-table th, .el-table tr {
+        border: 0 !important;
+        background-color: transparent !important;
+    }
+
+    /*表格边框线去除*/
+    .el-table--border tr, td {
+        border: none !important;
+    }
+
+    .el-table::before {
+        height: 0;
+    }
+
+    /*表格滚动条样式*/
+    /*定义滚动条高宽及背景 高宽分别对应横竖滚动条
+    的尺寸*/
+    ::-webkit-scrollbar {
+        width: 7px; /*滚动条宽度*/
+        height: 7px; /*滚动条高度*/
+        background-color: rgb(223, 224, 229);
+    }
+
+    /*定义滑块 内阴影+圆角*/
+    ::-webkit-scrollbar-thumb {
+        -webkit-box-shadow: inset 0 0 6px rgba(246, 244, 244, 0.3);
+        background-color: rgb(124, 141, 176); /*滚动条的背景颜色*/
+    }
+
+    /*表头行设置*/
+    .el-table thead {
+        color: rgb(165, 241, 241) !important;
+    }
+
+    /*表格文字样式*/
+    .el-table {
+        color: rgb(91, 215, 192) !important;
+        font-weight: bold;
+    }
+
+    /*表格选中高亮*/
+    .el-table--enable-row-hover .el-table__body tr:hover > td {
+        background-color: rgb(127, 131, 143) !important;
+    }
+
+    /*计数器样式*/
+    .el-input__inner {
+        background-color: transparent !important;
+        color: rgb(91, 215, 192);
+    }
+
+    /*对话框样式*/
+    .el-dialog__header {
+        background: #7c7a7a;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: Center;
+    }
+
+    .el-dialog__body {
+        background: #bbbaba;
+    }
+
+    .el-descriptions__table {
+        background: #bbbaba;
+    }
+
+</style>
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="9">
+            <div class="caption">校园二手书籍交易平台</div>
+        </el-col>
+    </el-row>
+    <!--顶部导航-->
+    <el-row>
+        <el-col :span="1">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="22">
+            <el-menu default-active="2" class="el-menu-demo" mode="horizontal">
+                <el-menu-item index="1">
+                    <el-link href="frontPage.html" target="_self" class="navigation-tab">首页</el-link>
+                </el-menu-item>
+                <el-menu-item index="2">
+                    <el-link href="shoppingCart.html" target="_self" class="navigation-tab">购物车</el-link>
+                </el-menu-item>
+                <el-menu-item style="font-family: 华文新魏;font-size:18px;float:right;padding-right: 50px">
+                    <template slot="title">
+                        <el-image style="height:30px;width: 30px;border-radius:15px;" v-if="userData.avatarImagePath"
+                                  :src="userData.avatarImagePath"></el-image>
+                        {{userData.userName}}
+                    </template>
+                </el-menu-item>
+            </el-menu>
+        </el-col>
+    </el-row>
+    <!--结算行-->
+    <div style="min-height: 12px;"></div>
+    <el-row>
+        <el-col :span="2">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="17">
+            <el-button type="primary"
+                       style="background: #8c93a2; border-style:none; opacity:90%;"
+                       size="medium" @click="deleteSelectedBook()"
+                       icon="el-icon-delete" round>删除所选
+            </el-button>
+        </el-col>
+        <el-col :span="2">
+            <span style="font-size: 10px;color: #909399">合计：</span>
+            <span style="font-size: 10px;color: #F56C6C">￥</span>
+            <span style="font-size: 20px;color: #F56C6C">{{bookTotalPrice}}</span>
+        </el-col>
+        <el-col :span="2">
+            <el-button type="primary"
+                       style="background: #FF7F50; border-style:none;float: right"
+                       size="medium " @click="settlementButton()"
+                       icon="el-icon-truck" round>结 算
+            </el-button>
+        </el-col>
+    </el-row>
+    <!--商品表格行-->
+    <el-row>
+        <el-col :span="2">
+            <div class="grid-content" style="height: 75vh"></div>
+        </el-col>
+        <el-col :span="20">
+            <template>
+                <el-table
+                        ref="multipleTable"
+                        :data="tableData"
+                        tooltip-effect="dark"
+                        style="width: 100%;opacity: 90%"
+                        max-height="510px"
+                        @selection-change="handleSelectionChange"
+                >
+                    <el-table-column
+                            align="center"
+                            type="selection"
+                            width="70"
+                            :selectable="selectable"
+                    >
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="address"
+                            label="封面"
+                            width="200">
+                        <template slot-scope="scope">
+                            <el-image style="width: 100px; height: 100px ;border-radius: 10px;cursor: pointer"
+                                      v-if="scope.row.book.imagePath"
+                                      :src="scope.row.book.imagePath"
+                                      @click="detailsJump(scope.row.book.id)"
+                                      fit="cover"></el-image>
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="book.bookName"
+                            label="书名"
+                            width="160"
+                            show-overflow-tooltip>
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="book.author"
+                            label="作者"
+                            width="120"
+                            show-overflow-tooltip>
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="book.price"
+                            label="价格"
+                            width="100"
+                    >
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            prop="book.publishingHouse"
+                            label="出版社"
+                            width="200"
+                            show-overflow-tooltip>
+                    </el-table-column>
+                    <el-table-column
+                            align="center"
+                            label="数量"
+                            width="150"
+                    >
+                        <template slot-scope="scope">
+                            <el-input-number v-model="scope.row.shoppingQuantity"
+                                             @change="((currentValue, oldValue)=>{inputNumberChange(currentValue, oldValue, scope.row.id)})"
+                                             :min="0" :max="scope.row.book.inStock-scope.row.book.sales"
+                                             size="mini" controls-position="right"></el-input-number>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column
+                            align="center"
+                            label="操作"
+                    >
+                        <!--  获取当前选中行  -->
+                        <template slot-scope="scope">
+                            <el-button type="primary"
+                                       style="background: #8c93a2; border-style:none;"
+                                       size="medium" @click="deleteBook(scope.row)"
+                                       icon="el-icon-delete" round>
+                            </el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </template>
+        </el-col>
+    </el-row>
+    <!--结算弹出对话框-->
+    <el-dialog
+            title="商品结算"
+            :visible.sync="settlementDialogVisible"
+            width="39%"
+            style="opacity:98%;"
+    >
+        <el-table
+                :data="multipleSelection"
+                style="width: 100%">
+            <el-table-column
+                    align="center"
+                    prop="book.bookName"
+                    label="书名"
+                    width="240">
+            </el-table-column>
+            <el-table-column
+                    align="center"
+                    prop="book.price"
+                    label="价格"
+                    width="156">
+            </el-table-column>
+            <el-table-column
+                    align="center"
+                    prop="shoppingQuantity"
+                    label="购买数量"
+                    width="100">
+            </el-table-column>
+        </el-table>
+        <el-divider></el-divider>
+        <span>请选择配送方式：
+        <el-radio-group v-model="deliveryRadio" @change="radioChange">
+            <el-radio :label="0">自取</el-radio>
+            <el-radio :label="1">配送上门(一条记录加1元)</el-radio>
+        </el-radio-group>
+        </span>
+        <span style="float:right;">总计：￥{{finalPrice}}</span>
+        <div style="display: flex;justify-content: center;align-items: Center;padding-top: 18px">
+            <el-button type="primary"
+                       style="background: #FF7F50; border-style:none;"
+                       @click="addressExamination" round>确 认 购 买
+            </el-button>
+        </div>
+    </el-dialog>
+    <!--支付密码确认弹窗-->
+    <el-dialog
+            title="请输入支付密码"
+            :visible.sync="paymentPasswordDialogVisible"
+            width="25%">
+        <div style="display: flex;justify-content: center;align-items: Center;">
+            <el-input v-model="enterPaymentPassword" maxlength="6" style="width: 200px" show-word-limit></el-input>
+            <span style="width: 25px"></span>
+            <el-button style="font-family: 华文新魏;background: #9ce7e7;
+                    font-size: 20px;" size="small" @click="confirmPurchase()" round>确 定
+            </el-button>
+        </div>
+    </el-dialog>
+</div>
+</body>
+<script>
+    new Vue({
+        el: "#app",
+        data() {
+            return {
+                // 字符密码输入模型
+                enterPaymentPassword: '',
+                // 支付密码输入对话框
+                paymentPasswordDialogVisible: false,
+                // 配送方式
+                deliveryRadio: 0,
+                // 结算对话框开关
+                settlementDialogVisible: false,
+                // 勾选商品总价
+                bookTotalPrice: 0,
+                // 最终价格，有配送费
+                finalPrice: 0,
+                /*购物车*/
+                shoppingCar: {
+                    id: '',
+                    userId: '',
+                    bookId: '',
+                    shoppingQuantity: '',
+                },
+                shoppingCarMap: '',
+                // 后面通过后端返回map，根据bookId获取加购数
+                /*个人信息*/
+                userData: {
+                    id: "",
+                    userName: "用户用户用户用户呼",
+                    phoneNumber: "", // 电话号码
+                    userPassword: "", // 登陆密码
+                    address: "", // 地址
+                    wallet: "", // 是否开通钱包
+                    balance: "", // 余额
+                    paymentPassword: "", // 支付密码
+                    merchant: "", // 是否是商家
+                    avatarData: "", // 头像字节数据
+                    avatarImagePath: "./image/wallhaven-eowo18.jpg",
+                    // listings: [5, 6, 7],// 上架商品清单 在另一个表
+                    // booksPurchased: [1, 2, 5], 在另一张表
+                },
+
+                // 书籍数据集合
+                tableData: [],
+                // 复选框选中数组
+                multipleSelection: []
+            }
+        },
+        // 页面挂载完成钩子
+        mounted() {
+            this.bookAddOnLoad();
+        },
+        methods: {
+            /*图书详情跳转*/
+            detailsJump(bookId) {
+                window.location.href = "productDetails.html?value=" + bookId;
+            },
+            /*结算*/
+            // 检查地址
+            addressExamination() {
+                axios.get("http://localhost/shopping/addressConfirmation").then(resp => { // 查找地址是否完善
+                    if (resp.data.code === 2001) {
+                        this.paymentPasswordDialogVisible = true;
+                    } else {
+                        this.$message.info(resp.data.message);
+                    }
+                });
+            },
+            // 确认购买
+            confirmPurchase() {
+                let _this = this;
+                axios.get("http://localhost/shopping/comparePassword/" + _this.enterPaymentPassword).then(resp => {
+                    this.paymentPasswordDialogVisible = false;
+                    this.enterPaymentPassword = '';
+                    if (resp.data.code === 2001) {
+                        let purchaseBook = this.multipleSelection;
+                        for (let i = 0; i < purchaseBook.length; i++) {
+                            delete purchaseBook[i].book;// 减轻负担
+                        }
+                        axios.post("http://localhost/shopping/purchaseBook/" + _this.deliveryRadio + "/" + _this.finalPrice, purchaseBook).then(resp => {
+                            if (resp.data.code === 2001) {
+                                this.$message.info(resp.data.message);
+                                this.settlementDialogVisible = false;
+                            }
+                            this.bookAddOnLoad();
+                        });
+                    } else {
+                        this.$message.error(resp.data.message);
+                        this.settlementDialogVisible = false;
+                    }
+                });
+            },
+            // 单选按钮
+            radioChange(label) {
+                if (label === 0) {
+                    this.finalPrice = this.bookTotalPrice;
+                }
+                if (label === 1) {
+                    this.finalPrice = this.bookTotalPrice + this.multipleSelection.length;
+                }
+            },
+            // 结算按钮
+            settlementButton() {
+                if (this.multipleSelection.length < 1) {
+                    this.$message.info("请选中图书");
+                    return;
+                }
+                this.settlementDialogVisible = true;
+                this.finalPrice = this.bookTotalPrice;
+                if (this.deliveryRadio === 1) this.finalPrice = this.bookTotalPrice + this.multipleSelection.length;
+            },
+            /*计数器变化，加购数变化*/
+            inputNumberChange(currentValue, oldValue, id) {
+                axios.put("http://localhost/shopping/" + id + "/" + currentValue).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.handleSelectionChange(this.multipleSelection);
+                    } else {
+                        // 出错计数器变为旧值
+                    }
+                });
+            },
+            /*加载图书*/
+            bookAddOnLoad() {
+                let _this = this;
+                axios.get("http://localhost/shopping").then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.tableData = resp.data.data;
+                    } else {
+                        this.$message.error(resp.data.message);
+                        window.location.href = "logIn.html";
+                    }
+                });
+            },
+            /*删除选中*/
+            deleteSelectedBook() {
+                if (this.multipleSelection.length <= 0) {
+                    this.$message.info("请选中图书");
+                    return;
+                }
+                let ids = [];
+                for (let i = 0; i < this.multipleSelection.length; i++) {
+                    ids.push(this.multipleSelection[i].id);
+                }
+                axios.post("http://localhost/shopping/deleteSelectedBook", ids).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                        this.bookAddOnLoad();
+                    }
+                });
+
+            },
+            /*单个删除图书*/
+            deleteBook(val) {
+                axios.delete("http://localhost/shopping/" + val.id).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.$message.success(resp.data.message);
+                        this.bookAddOnLoad();
+                    }
+                });
+            },
+            /*已售罄的复选框不可勾选*/
+            selectable(row, index) {
+                return row.book.inStock - row.book.sales > 0;
+            },
+            /*勾选图书价格计算*/
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+                console.log(this.multipleSelection);
+                let totalPrice = 0;
+                for (let i = 0; i < this.multipleSelection.length; i++) {
+                    totalPrice += this.multipleSelection[i].book.price * this.multipleSelection[i].shoppingQuantity;
+                    totalPrice = Math.round(totalPrice * 100) / 100;
+                }
+                this.bookTotalPrice = totalPrice;
+            },
+        },
+    })
+</script>
+</html>

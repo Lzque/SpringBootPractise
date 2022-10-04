@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>商品详情</title>
+</head>
+<script src="./js/vue.js"></script>
+<script src="./element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="./element-ui/lib/theme-chalk/index.css">
+<script src="./js/axios-0.18.0.js"></script>
+
+<style lang="scss">
+    /*背景设置*/
+    body {
+        background-image: url("./image/wallhaven-yjd3eg.jpg");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-attachment: fixed;
+        /*背景虚化*/
+        backdrop-filter: blur(2px);
+    }
+
+    /*第一行占高*/
+    .grid-content {
+        border-radius: 4px;
+        min-height: 60px;
+    }
+
+    /*标题样式*/
+    .caption {
+        color: #ffffff;
+        font-family: 华文新魏;
+        font-size: 30px;
+        display: flex;
+        justify-content: center; /*水平居中*/
+        align-items: Center; /*垂直居中*/
+        min-height: 50px;
+    }
+
+    /*图片轮播，走马灯*/
+    .el-carousel__item {
+        display: flex;
+        align-items: Center;
+        justify-content: Center;
+        border-radius: 10px;
+    }
+
+    /*计数器样式*/
+    .el-input__inner {
+        background-color: transparent !important;
+        border: none !important;
+        color: rgb(91, 215, 192);
+    }
+
+    /*商品评论分割线透明*/
+    .el-divider__text {
+        background-color: transparent !important;
+    }
+
+    /*评论抽屉样式*/
+    .el-drawer {
+        background: url("./image/img.png");
+        backdrop-filter: blur(5px);
+
+    }
+
+    /*1.显示滚动条：当内容超出容器的时候，可以拖动：*/
+    .el-drawer__body {
+        overflow: auto;
+        /* overflow-x: auto; */
+    }
+
+    /*评论卡片样式*/
+    .el-card {
+        width: 95%;
+        background-color: #8c93a2;
+    }
+
+</style>
+
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <div class="grid-content"></div>
+        </el-col>
+        <el-col :span="9">
+            <div class="caption">校园二手书籍交易平台</div>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="2">
+            <div style="min-height: 50px;"></div>
+        </el-col>
+        <el-col :span="20">
+            <el-page-header @back="goBack" content="详情页面">
+            </el-page-header>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="3">
+            <div class="grid-content"></div>
+        </el-col>
+        <!--图片轮播-->
+        <el-col :span="10">
+            <div class="block">
+                <el-carousel height="400px">
+                    <el-carousel-item v-for="item in carouselImages" :key="item">
+                        <el-image :src="item" style="border-radius:10px;height: 100%;"></el-image>
+                    </el-carousel-item>
+                </el-carousel>
+            </div>
+        </el-col>
+        <el-col :span="1">
+            <div class="grid-content"></div>
+        </el-col>
+        <!--商品信息-->
+        <el-col :span="9">
+            <div style="height: 62px;width: 500px">
+                <span style="font-size: 15px;color:#616672;font-weight: bold;">
+                    书名: {{bookData.bookName}}
+                    <el-divider direction="vertical"></el-divider>
+                             {{bookData.author}}·著
+                    <el-divider direction="vertical"></el-divider>
+                             {{bookData.publishingHouse}}
+                </span>
+            </div>
+            <div style="font-size: 10px;color:#616672;font-weight: bold;height: 20px">销量：{{bookData.sales}}</div>
+            <div style="font-size: 15px;color:#616672;font-weight: bold;height: 20px;padding-top: 6px">
+                剩余：{{bookData.inStock - bookData.sales}}
+            </div>
+            <div>
+                <span style="font-size: 20px;color:#E6A23C;font-weight: bold;">价格：</span>
+                <span style="font-size: 15px;color: #F56C6C">￥</span>
+                <span style="font-size: 36px;color: #F56C6C">{{bookData.price}}</span>
+            </div>
+            <div style="height:60px; display: flex;align-items: center;font-weight: bold;">
+                <span style="font-size: 15px;color:#616672">购买数量：</span>
+                <el-input-number v-model="num" @change="handleChange" :min="1" :max="bookData.inStock - bookData.sales"
+                                 size="mini"></el-input-number>
+            </div>
+            <div>
+                <span style="font-size: 15px;color:#616672;font-weight: bold;">卖家： {{bookData.sellerUserName}} </span>
+            </div>
+            <div style="height:60px; display: flex;align-items: center;font-weight: bold;">
+                <span style="font-size: 15px;color:#616672">配送方式：送货上门/自取</span>
+            </div>
+            <div style="height:60px; display: flex;align-items: center;">
+                <el-button type="primary"
+                           style="background: #FCB065; border-style:none;float:right"
+                           round @click="addCartBehavior(bookData.id)">加入购物车
+                </el-button>
+            </div>
+            <div style="align-items: center;">
+                <el-divider content-position="left">
+                    <el-badge :value="bookData.commentQuantity" class="item">
+                        <el-button size="small" @click="commentDrawerLoad()">商品评论</el-button>
+                    </el-badge>
+                </el-divider>
+            </div>
+        </el-col>
+    </el-row>
+    <el-row>
+        <el-col :span="3">
+            <div style="height: 200px"></div>
+        </el-col>
+    </el-row>
+    <el-drawer
+            :title="commentTitle"
+            :visible.sync="drawer"
+            :direction="direction"
+            size="40%"
+    >
+        <div v-for="(item) in commentTableData" :key="commentTableData.id">
+            <el-row>
+                <el-col :span="1">
+                    <div style="height: 10px;"></div>
+                </el-col>
+                <el-col :span="23">
+                    <el-card :body-style="{ padding: '0px' }" shadow="always" style="font-family: 华文新魏;">
+                        <div slot="header" class="clearfix">
+                            <el-image style="height:26px;width: 26px;border-radius:13px;float: left"
+                                      v-if="item.user.avatarImagePath"
+                                      :src="item.user.avatarImagePath"></el-image>
+                            <span style="float:left;">
+                                {{item.user.userName}}
+                            </span>
+                            <el-rate :value="item.rating" disabled="true" style="float:left;padding-left: 24px"
+                                     show-text></el-rate>
+                        </div>
+                        <div style="clear: left;">{{item.comment}}</div>
+                        <div style="min-height: 6px;"></div>
+                        <div v-for="(img) in item.commentImageBase64s" style="padding-left: 6px">
+                            <el-image :src="img" :preview-src-list="item.commentImageBase64s"
+                                      style="border-radius:10px;height:100px;width: 20%;float: left;"></el-image>
+                            <div style="height: 105px;width: 6px;float: left"></div>
+                        </div>
+                        <div style="min-height: 10px;clear: left;"></div>
+                    </el-card>
+                    <div style="min-height: 12px;"></div>
+                </el-col>
+            </el-row>
+        </div>
+    </el-drawer>
+</div>
+</body>
+<script>
+    new Vue({
+        el: "#app",
+        data() {
+            return {
+                // 购物车模型
+                shopping: {
+                    id: '',
+                    userId: '',
+                    bookId: '',
+                    shoppingQuantity: '',
+                },
+                // 评论抽屉标题
+                commentTitle: "商品综合评分:5",
+                // 用户评分
+                star: 3,
+                // 书籍数据集合
+                commentTableData: [],
+                /*评论抽屉*/
+                drawer: false,
+                direction: 'ltr',
+                /*计数器*/
+                num: 1,
+
+                /*图书数据*/
+                bookData: {
+                    bookName: '银河银河银',
+                    author: 'lala',
+                    price: '99',
+                    inStock: '3',
+                    id: 1,
+                    publishingHouse: "出版社",
+                    imagePath: '../image/2.jpg'
+                },
+                // 图书轮播图片路径数组
+                carouselImages: ['./image/wallhaven.jpg',
+                    './image/wallhaven-eowo18.jpg',
+                    './image/wallhaven-lmkwwy.jpg'],
+            }
+        },
+        // 挂载完成，Vue初始化成功，HTML页面渲染成功，加载数据
+        mounted() {
+            this.bookDataLoad();
+        },
+        methods: {
+            // 图书评论加载
+            commentDrawerLoad() {
+                this.drawer = true;
+                let bookId = location.search.split("=")[1];// 地址传入选中图书的Id
+                axios.get("http://localhost/productDetails/commentDrawerLoad/" + bookId).then(resp => {
+                    if (resp.data.code === 2001) {
+                        this.commentTableData = resp.data.data;
+                    }
+                });
+            },
+            // 图书数据加载
+            bookDataLoad() {
+                let bookId = location.search.split("=")[1];// 地址传入选中图书的Id
+                axios.get("http://localhost/productDetails/" + bookId).then(resp => {
+                    if (resp.data.code === 2001) {
+                        console.log(resp.data.data);
+                        this.bookData = resp.data.data;
+                        this.carouselImages = this.bookData.bookImageBase64s;
+                        this.commentTitle = "商品综合评分: " + this.bookData.overallRating;
+                    } else {
+                        // 返回上一页
+                    }
+                });
+            },
+            // 加入购物车
+            addCartBehavior(bookId) {
+                let _this = this;
+                this.shopping.bookId = bookId;
+                this.shopping.shoppingQuantity = this.num;
+                /*剩余判断*/
+                if (this.bookData.inStock - this.bookData.sales <= 0) {
+                    this.$message.info("商品已售罄");
+                    return;
+                }
+                /*补一个购物车数量*/
+                axios.post("http://localhost/frontPage/shoppingQuantity", _this.shopping).then(resp => {
+                    if (resp.data.code === 2001) {
+                        if (resp.data.data + this.shopping.shoppingQuantity > this.bookData.inStock - this.bookData.sales) {
+                            this.$message.info("加购数大于库存，请重试");
+                            return;
+                        }
+                        axios.post("http://localhost/productDetails/addShoppingCart", _this.shopping).then(resp => {
+                            if (resp.data.code === 2001) {
+                                this.$message.success(resp.data.message);
+                                // 清空图书表单
+                                Object.keys(this.shopping).forEach(key => {
+                                    this.shopping[key] = ''
+                                });
+                                this.num = 1;
+                            }
+                        });
+                    } else {
+                        this.$message.error(resp.data.message);
+                        window.location.href = "logIn.html";
+                    }
+                });
+
+            },
+            // 返回键事件，后面补一个页面跳转传参
+            goBack() {
+                window.history.back();// 加载history列表中的前一个URL
+            },
+            // 绑定值改变时触发
+            handleChange(value) {
+                // console.log(value);
+            }
+        },
+    })
+</script>
+</html>
